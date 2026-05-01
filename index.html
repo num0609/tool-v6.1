@@ -54,7 +54,7 @@
         function Dashboard() {
             // States
             const [hz, setHz] = useState(50);
-            const [poles, setPoles] = useState(4);
+            const [motorRpm, setMotorRpm] = useState(1450); // อัปเดต: เปลี่ยนจาก Poles เป็นรอบเนมเพลทมอเตอร์
             const [ratio, setRatio] = useState(0); 
             const [d1, setD1] = useState(0);
             const [d2, setD2] = useState(0);
@@ -73,8 +73,8 @@
             const [pmCt, setPmCt] = useState("");
             const [pmLoad, setPmLoad] = useState("small");
 
-            // NEW: States for MCC Specs
-            const [selectedMccHp, setSelectedMccHp] = useState("1");
+            // States for MCC Specs
+            const [selectedMccHp, setSelectedMccHp] = useState("1/2");
 
             // Master Data
             const wireMasterData = {
@@ -117,7 +117,7 @@
                 { hp: "500", kw: "375", frame: "400", shaft: "110", key: "28x16", amp: 650.0, de: "NU 324", nde: "6324 C3", dimA: 686, dimB: 711 }
             ];
 
-            // NEW: Master Data for MCC Specifications
+            // Master Data for MCC Specifications
             const mccMasterData = [
                 { hp: "1/2", kw: "0.37", runA: "1.2", startA: "2.4", breaker: "32/3", mccb: "NF32-SV", olHeater: "T18 = 1.3A (0.1-1.6A)", olModel: "T18", mcm: "S-T10", mcd: "-", mcs: "-", iec1: "2.5#x3, N-2.5#, G-2.5#", iec2: "-", cv1: "4C-2.5#, G-2.5#", cv2: "-", conn: "Direct on Line" },
                 { hp: "3/4", kw: "0.55", runA: "1.6", startA: "3.2", breaker: "32/4", mccb: "NF32-SV", olHeater: "T18 = 1.7A (1.4-2A)", olModel: "T18", mcm: "S-T10", mcd: "-", mcs: "-", iec1: "2.5#x3, N-2.5#, G-2.5#", iec2: "-", cv1: "4C-2.5#, G-2.5#", cv2: "-", conn: "Direct on Line" },
@@ -151,12 +151,13 @@
 
             // Calculations Logic
             const finalRpm = useMemo(() => {
-                const motor = (120 * (hz || 0)) / (poles || 2);
-                let current = motor / (ratio || 1);
+                // คำนวณความเร็วรอบตาม RPM เนมเพลทเทียบสัดส่วนกับความถี่ (Hz) / 50
+                const motorSpeed = (motorRpm || 0) * ((hz || 0) / 50);
+                let current = ratio > 0 ? motorSpeed / ratio : motorSpeed;
                 if (d1 > 0 && d2 > 0) current = (current * d1) / d2;
                 if (z1 > 0 && z2 > 0) current = (current * z1) / z2;
                 return current;
-            }, [hz, poles, ratio, d1, d2, z1, z2]);
+            }, [hz, motorRpm, ratio, d1, d2, z1, z2]);
 
             const pmResult = useMemo(() => {
                 if (!pmAmp || !pmCt) return null;
@@ -213,7 +214,8 @@
                         <div className="space-y-3">
                             <InputGroup label="ความถี่อินเวอร์เตอร์" value={hz} onChange={setHz} unit="Hz" icon="⚡" color="yellow" />
                             <div className="grid grid-cols-2 gap-2">
-                                <InputGroup label="โพล (P)" value={poles} onChange={setPoles} unit="P" icon="🟢" color="emerald" />
+                                {/* อัปเดตบรรทัดนี้ ให้รับค่ารอบมอเตอร์แทนโพลมอเตอร์ */}
+                                <InputGroup label="รอบเนมเพลท" value={motorRpm} onChange={setMotorRpm} unit="RPM" icon="🔄" color="emerald" />
                                 <InputGroup label="อัตราทดเกียร์" value={ratio} onChange={setRatio} unit="1:X" icon="⚙️" color="emerald" />
                             </div>
                         </div>
@@ -318,88 +320,59 @@
                                 </select>
                             </div>
 
+                            {/* เขียนโค้ดส่วนที่ขาดหายจากต้นฉบับให้สมบูรณ์ */}
                             {pmResult && (
                                 <div className="bg-slate-900 border border-indigo-500/30 rounded-xl p-4 space-y-4">
                                     <div className="text-center">
                                         <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">ปรับ Knob หน้าปัดไปที่ (%)</p>
-                                        <p className="text-5xl font-black text-white">{pmResult.percent}<span className="text-xl">%</span></p>
+                                        <p className="text-5xl font-black text-white">{pmResult.percent}%</p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                                        <div className="text-center">
-                                            <p className="text-[9px] text-slate-500 uppercase">S.D. (Start Delay)</p>
-                                            <p className="text-xl font-bold text-indigo-300">{pmResult.sd}s</p>
-                                        </div>
-                                        <div className="text-center border-l border-slate-800">
-                                            <p className="text-[9px] text-slate-500 uppercase">O.D. (Off Delay)</p>
-                                            <p className="text-xl font-bold text-indigo-300">{pmResult.od}s</p>
-                                        </div>
+                                    <div className="grid grid-cols-2 gap-2 text-center border-t border-slate-800 pt-3">
+                                        <div><p className="text-[9px] text-slate-500 uppercase">Start Delay (SD)</p><p className="text-lg font-bold text-sky-400">{pmResult.sd} วิ</p></div>
+                                        <div><p className="text-[9px] text-slate-500 uppercase">Trip Delay (OD)</p><p className="text-lg font-bold text-red-400">{pmResult.od} วิ</p></div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </CollapsibleSection>
 
-                    {/* 6. MCC Specifications */}
+                    {/* 6. ข้อมูลสเปคตู้คอนโทรล (MCC) - เพิ่มหน้าแสดงผลที่หายไป */}
                     <CollapsibleSection 
-                        title="6. MCC Specifications (Mitsubishi)" 
+                        title="6. สเปคอุปกรณ์ตู้คอนโทรล (MCC)" 
                         defaultOpen={false}
-                        containerClassName="bg-emerald-950/20 rounded-2xl border border-emerald-500/30"
-                        titleClassName="text-emerald-400 font-bold text-lg uppercase"
+                        containerClassName="bg-rose-950/20 rounded-2xl border border-rose-500/30"
+                        titleClassName="text-rose-400 font-bold text-lg uppercase"
                     >
                         <select value={selectedMccHp} onChange={(e) => setSelectedMccHp(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-sm font-bold text-white mb-4">
                             {mccMasterData.map(m => <option key={m.hp} value={m.hp}>{m.hp} HP ({m.kw} kW)</option>)}
                         </select>
-
-                        <div className="space-y-4">
-                            {/* Circuit Breaker & MCCB */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[8px] text-slate-500 uppercase font-bold">Breaker</p>
-                                    <p className="text-sm font-bold text-white">{currentMcc.breaker} A</p>
-                                </div>
-                                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[8px] text-slate-500 uppercase font-bold">MCCB Model</p>
-                                    <p className="text-sm font-bold text-white">{currentMcc.mccb}</p>
-                                </div>
+                        <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 space-y-3 text-sm">
+                            <div className="grid grid-cols-2 gap-2 text-center pb-2 border-b border-slate-800">
+                                <div><p className="text-[9px] text-slate-500">พิกัดกระแส (Run)</p><p className="font-bold text-emerald-400">{currentMcc.runA} A</p></div>
+                                <div className="border-l border-slate-800"><p className="text-[9px] text-slate-500">กระแสสตาร์ท</p><p className="font-bold text-red-400">{currentMcc.startA} A</p></div>
                             </div>
-
-                            {/* Magnetic Contactors */}
-                            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                <p className="text-[8px] text-slate-500 uppercase font-bold mb-2">Magnetic Contactors ({currentMcc.conn})</p>
-                                <div className="grid grid-cols-3 gap-1 text-center">
-                                    <div className="bg-slate-950 p-2 rounded">
-                                        <p className="text-[7px] text-slate-500">Main</p>
-                                        <p className="text-[10px] font-bold">{currentMcc.mcm}</p>
-                                    </div>
-                                    <div className="bg-slate-950 p-2 rounded">
-                                        <p className="text-[7px] text-slate-500">Delta</p>
-                                        <p className="text-[10px] font-bold">{currentMcc.mcd}</p>
-                                    </div>
-                                    <div className="bg-slate-950 p-2 rounded">
-                                        <p className="text-[7px] text-slate-500">Star</p>
-                                        <p className="text-[10px] font-bold">{currentMcc.mcs}</p>
-                                    </div>
-                                </div>
+                            <div className="text-center pb-2 border-b border-slate-800">
+                                <p className="text-[9px] text-slate-500">ระบบสตาร์ท</p>
+                                <p className="font-bold text-yellow-400">{currentMcc.conn}</p>
                             </div>
-
-                            {/* Overload Relay */}
-                            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                <p className="text-[8px] text-slate-500 uppercase font-bold">Overload Relay ({currentMcc.olModel})</p>
-                                <p className="text-sm font-bold text-orange-400 mt-1">{currentMcc.olHeater}</p>
+                            <div className="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
+                                <div><p className="text-[9px] text-slate-500">Breaker</p><p className="font-bold text-white">{currentMcc.breaker} ({currentMcc.mccb})</p></div>
+                                <div><p className="text-[9px] text-slate-500">Overload</p><p className="font-bold text-white">{currentMcc.olHeater}</p></div>
                             </div>
-
-                            {/* Wire Size Recommendations */}
-                            <div className="grid grid-cols-1 gap-2">
-                                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[8px] text-slate-500 uppercase font-bold">IEC-01 (Single Core)</p>
-                                    <p className="text-[11px] font-medium text-sky-300 mt-1">Main: {currentMcc.iec1}</p>
-                                    {currentMcc.iec2 !== '-' && <p className="text-[11px] font-medium text-sky-400">Motor: {currentMcc.iec2}</p>}
-                                </div>
-                                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[8px] text-slate-500 uppercase font-bold">CV / NYY (Multi Core)</p>
-                                    <p className="text-[11px] font-medium text-sky-300 mt-1">Main: {currentMcc.cv1}</p>
-                                    {currentMcc.cv2 !== '-' && <p className="text-[11px] font-medium text-sky-400">Motor: {currentMcc.cv2}</p>}
-                                </div>
+                            <div className="grid grid-cols-3 gap-2 text-center pb-2 border-b border-slate-800">
+                                <div><p className="text-[9px] text-slate-500">Mag. Main</p><p className="font-bold text-sky-300">{currentMcc.mcm}</p></div>
+                                <div className="border-x border-slate-800"><p className="text-[9px] text-slate-500">Mag. Delta</p><p className="font-bold text-sky-300">{currentMcc.mcd}</p></div>
+                                <div><p className="text-[9px] text-slate-500">Mag. Star</p><p className="font-bold text-sky-300">{currentMcc.mcs}</p></div>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[9px] text-slate-500 uppercase">สายไฟ IEC01 (THW)</p>
+                                <p className="text-xs font-bold text-orange-300">เมน: {currentMcc.iec1}</p>
+                                <p className="text-xs font-bold text-orange-300">มอเตอร์: {currentMcc.iec2}</p>
+                            </div>
+                            <div className="space-y-1 pt-2 border-t border-slate-800">
+                                <p className="text-[9px] text-slate-500 uppercase">สายไฟ CV</p>
+                                <p className="text-xs font-bold text-emerald-300">เมน: {currentMcc.cv1}</p>
+                                <p className="text-xs font-bold text-emerald-300">มอเตอร์: {currentMcc.cv2}</p>
                             </div>
                         </div>
                     </CollapsibleSection>
