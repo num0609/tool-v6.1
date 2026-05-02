@@ -299,37 +299,66 @@
                     </CollapsibleSection>
 
                     {/* 5. Primus PM-001 SMART CONFIG */}
-                    <CollapsibleSection 
-                        title="5. Primus PM-001 SMART CONFIG" 
-                        defaultOpen={false}
-                        containerClassName="bg-purple-950/20 rounded-2xl border border-purple-500/30"
-                        titleClassName="text-purple-400 font-bold text-lg uppercase"
-                    >
-                        <div className="space-y-3">
-                            <InputGroup label="กระแสใช้งานจริง (Amp)" value={pmAmp} onChange={setPmAmp} unit="A" icon="⚡" color="purple" />
-                            <InputGroup label="ขนาด CT" value={pmCt} onChange={setPmCt} unit="/5A" icon="🧲" color="purple" />
-                            <select value={pmLoad} onChange={(e) => setPmLoad(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-xs font-bold text-white outline-none">
-                                <option value="small">โหลดเบา (พัดลม, ปั๊มน้ำเล็ก)</option>
-                                <option value="medium">โหลดปานกลาง (สายพาน, ปั๊มใหญ่)</option>
-                                <option value="heavy">โหลดหนัก (บด, อัด, ยก)</option>
-                            </select>
-                            {pmResult && (
-                                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
-                                    <p className="text-sm text-slate-400 mb-1">เปอร์เซ็นต์โหลด: <span className="text-purple-400 font-bold">{pmResult.percent}%</span></p>
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <div className="bg-slate-950 p-2 rounded border border-slate-800">
-                                            <p className="text-[10px] text-slate-500">Start Delay (Sd)</p>
-                                            <p className="text-lg font-bold text-emerald-400">{pmResult.sd} s</p>
-                                        </div>
-                                        <div className="bg-slate-950 p-2 rounded border border-slate-800">
-                                            <p className="text-[10px] text-slate-500">Over Delay (od)</p>
-                                            <p className="text-lg font-bold text-red-400">{pmResult.od} s</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </CollapsibleSection>
+<CollapsibleSection 
+    title="5. Primus PM-001 SMART CONFIG" 
+    defaultOpen={false}
+    containerClassName="bg-purple-950/20 rounded-2xl border border-purple-500/30"
+    titleClassName="text-purple-400 font-bold text-lg uppercase"
+>
+    <div className="space-y-3">
+        
+        {/* 👉 แก้ตรงนี้: ทำเป็น 2 ช่อง */}
+        <div className="grid grid-cols-2 gap-2">
+            <InputGroup 
+                label="กระแสใช้งานจริง (Amp)" 
+                value={pmAmp} 
+                onChange={setPmAmp} 
+                unit="A" 
+                icon="⚡" 
+                color="purple" 
+            />
+            <InputGroup 
+                label="ขนาด CT" 
+                value={pmCt} 
+                onChange={setPmCt} 
+                unit="/5A" 
+                icon="🧲" 
+                color="purple" 
+            />
+        </div>
+
+        {/* โหลด */}
+        <select 
+            value={pmLoad} 
+            onChange={(e) => setPmLoad(e.target.value)} 
+            className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-xs font-bold text-white outline-none"
+        >
+            <option value="small">โหลดเบา (พัดลม, ปั๊มน้ำเล็ก)</option>
+            <option value="medium">โหลดปานกลาง (สายพาน, ปั๊มใหญ่)</option>
+            <option value="heavy">โหลดหนัก (บด, อัด, ยก)</option>
+        </select>
+
+        {pmResult && (
+            <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                <p className="text-sm text-slate-400 mb-1">
+                    เปอร์เซ็นต์โหลด: 
+                    <span className="text-purple-400 font-bold"> {pmResult.percent}%</span>
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                        <p className="text-[10px] text-slate-500">Start Delay (Sd)</p>
+                        <p className="text-lg font-bold text-emerald-400">{pmResult.sd} s</p>
+                    </div>
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                        <p className="text-[10px] text-slate-500">Over Delay (od)</p>
+                        <p className="text-lg font-bold text-red-400">{pmResult.od} s</p>
+                    </div>
+                </div>
+            </div>
+        )}
+    </div>
+</CollapsibleSection>
 
                     {/* 6. สเปคตู้ MCC & สายไฟ */}
                     <CollapsibleSection 
