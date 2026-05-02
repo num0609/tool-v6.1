@@ -54,7 +54,7 @@
         function Dashboard() {
             // States
             const [hz, setHz] = useState(50);
-            const [motorRpm, setMotorRpm] = useState(1450); // อัปเดต: เปลี่ยนจาก Poles เป็นรอบเนมเพลทมอเตอร์
+            const [motorRpm, setMotorRpm] = useState(1450); 
             const [ratio, setRatio] = useState(0); 
             const [d1, setD1] = useState(0);
             const [d2, setD2] = useState(0);
@@ -68,12 +68,11 @@
             const [selectedHp, setSelectedHp] = useState("10");
             const [measureA, setMeasureA] = useState("");
             const [measureB, setMeasureB] = useState("");
-
+            
             const [pmAmp, setPmAmp] = useState("");
             const [pmCt, setPmCt] = useState("");
             const [pmLoad, setPmLoad] = useState("small");
 
-            // States for MCC Specs
             const [selectedMccHp, setSelectedMccHp] = useState("1/2");
 
             // Master Data
@@ -117,7 +116,6 @@
                 { hp: "500", kw: "375", frame: "400", shaft: "110", key: "28x16", amp: 650.0, de: "NU 324", nde: "6324 C3", dimA: 686, dimB: 711 }
             ];
 
-            // Master Data for MCC Specifications
             const mccMasterData = [
                 { hp: "1/2", kw: "0.37", runA: "1.2", startA: "2.4", breaker: "32/3", mccb: "NF32-SV", olHeater: "T18 = 1.3A (0.1-1.6A)", olModel: "T18", mcm: "S-T10", mcd: "-", mcs: "-", iec1: "2.5#x3, N-2.5#, G-2.5#", iec2: "-", cv1: "4C-2.5#, G-2.5#", cv2: "-", conn: "Direct on Line" },
                 { hp: "3/4", kw: "0.55", runA: "1.6", startA: "3.2", breaker: "32/4", mccb: "NF32-SV", olHeater: "T18 = 1.7A (1.4-2A)", olModel: "T18", mcm: "S-T10", mcd: "-", mcs: "-", iec1: "2.5#x3, N-2.5#, G-2.5#", iec2: "-", cv1: "4C-2.5#, G-2.5#", cv2: "-", conn: "Direct on Line" },
@@ -151,7 +149,6 @@
 
             // Calculations Logic
             const finalRpm = useMemo(() => {
-                // คำนวณความเร็วรอบตาม RPM เนมเพลทเทียบสัดส่วนกับความถี่ (Hz) / 50
                 const motorSpeed = (motorRpm || 0) * ((hz || 0) / 50);
                 let current = ratio > 0 ? motorSpeed / ratio : motorSpeed;
                 if (d1 > 0 && d2 > 0) current = (current * d1) / d2;
@@ -169,14 +166,23 @@
                 return { percent: percent.toFixed(1), sd, od };
             }, [pmAmp, pmCt, pmLoad]);
 
+            // ฟังก์ชันวิเคราะห์เฟรมจากระยะ A และ B
             const analyzeFrame = () => {
                 if (!measureA || !measureB) return null;
                 const a = parseInt(measureA);
                 const b = parseInt(measureB);
                 const matches = motorSpecsData.filter(m => m.dimA === a && m.dimB === b);
+                
                 if (matches.length > 0) {
                     const uniqueFrames = [...new Set(matches.map(m => m.frame))];
-                    return `✅ ตรงกับเฟรม: ${uniqueFrames.join(' หรือ ')}`;
+                    const frameInfoStrings = uniqueFrames.map(fname => {
+                        const hpsForThisFrame = motorSpecsData
+                            .filter(m => m.frame === fname)
+                            .map(m => m.hp);
+                        return `${fname} (${hpsForThisFrame.join(', ')} HP)`;
+                    });
+
+                    return `✅ ตรงกับเฟรม: ${frameInfoStrings.join(' หรือ ')}`;
                 }
                 return "❌ ไม่พบข้อมูลเฟรม";
             };
@@ -192,8 +198,6 @@
             }, [wireType, cores, wireSize]);
 
             const currentMotor = useMemo(() => motorSpecsData.find(m => m.hp === selectedHp) || motorSpecsData[0], [selectedHp]);
-            
-            // Current MCC Data
             const currentMcc = useMemo(() => mccMasterData.find(m => m.hp === selectedMccHp) || mccMasterData[0], [selectedMccHp]);
 
             return (
@@ -214,7 +218,6 @@
                         <div className="space-y-3">
                             <InputGroup label="ความถี่อินเวอร์เตอร์" value={hz} onChange={setHz} unit="Hz" icon="⚡" color="yellow" />
                             <div className="grid grid-cols-2 gap-2">
-                                {/* อัปเดตบรรทัดนี้ ให้รับค่ารอบมอเตอร์แทนโพลมอเตอร์ */}
                                 <InputGroup label="รอบเนมเพลท" value={motorRpm} onChange={setMotorRpm} unit="RPM" icon="🔄" color="emerald" />
                                 <InputGroup label="อัตราทดเกียร์" value={ratio} onChange={setRatio} unit="1:X" icon="⚙️" color="emerald" />
                             </div>
@@ -286,6 +289,7 @@
                                 <div><p className="text-[9px] text-slate-500">รูกว้าง (A)</p><p className="text-lg font-bold">{currentMotor.dimA} mm</p></div>
                                 <div><p className="text-[9px] text-slate-500">รูยาว (B)</p><p className="text-lg font-bold">{currentMotor.dimB} mm</p></div>
                             </div>
+                            
                             <div className="flex gap-2 mt-3">
                                 <input type="number" placeholder="เช็ค A" value={measureA} onChange={(e)=>setMeasureA(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs font-bold outline-none" />
                                 <input type="number" placeholder="เช็ค B" value={measureB} onChange={(e)=>setMeasureB(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs font-bold outline-none" />
@@ -296,49 +300,40 @@
 
                     {/* 5. Primus PM-001 SMART CONFIG */}
                     <CollapsibleSection 
-                        title={
-                            <span className="flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span> 
-                                5. Primus PM-001 SMART CONFIG
-                            </span>
-                        }
+                        title="5. Primus PM-001 SMART CONFIG" 
                         defaultOpen={false}
-                        containerClassName="bg-indigo-950/30 rounded-2xl border border-indigo-500/40 shadow-xl"
-                        titleClassName="text-indigo-400 font-bold text-lg uppercase w-full flex items-center"
+                        containerClassName="bg-purple-950/20 rounded-2xl border border-purple-500/30"
+                        titleClassName="text-purple-400 font-bold text-lg uppercase"
                     >
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                <InputGroup label="Amp หน้าป้าย" value={pmAmp} onChange={setPmAmp} unit="A" icon="📛" color="indigo" />
-                                <InputGroup label="ขนาด CT" value={pmCt} onChange={setPmCt} unit="/5A" icon="🌀" color="indigo" />
-                            </div>
-                            <div>
-                                <label className="text-[9px] text-slate-500 ml-1 uppercase font-bold">เลือกประเภทโหลด</label>
-                                <select value={pmLoad} onChange={(e) => setPmLoad(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-sm font-bold text-white outline-none focus:border-indigo-500 mt-1">
-                                    <option value="small">สตาร์ทเร็ว (พัดลม/โหลดเบา)</option>
-                                    <option value="medium">สายพาน (โหลดปานกลาง)</option>
-                                    <option value="large">เครื่องบด/ใบพัดใหญ่ (โหลดหนัก)</option>
-                                </select>
-                            </div>
-
-                            {/* เขียนโค้ดส่วนที่ขาดหายจากต้นฉบับให้สมบูรณ์ */}
+                        <div className="space-y-3">
+                            <InputGroup label="กระแสใช้งานจริง (Amp)" value={pmAmp} onChange={setPmAmp} unit="A" icon="⚡" color="purple" />
+                            <InputGroup label="ขนาด CT" value={pmCt} onChange={setPmCt} unit="/5A" icon="🧲" color="purple" />
+                            <select value={pmLoad} onChange={(e) => setPmLoad(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-xs font-bold text-white outline-none">
+                                <option value="small">โหลดเบา (พัดลม, ปั๊มน้ำเล็ก)</option>
+                                <option value="medium">โหลดปานกลาง (สายพาน, ปั๊มใหญ่)</option>
+                                <option value="heavy">โหลดหนัก (บด, อัด, ยก)</option>
+                            </select>
                             {pmResult && (
-                                <div className="bg-slate-900 border border-indigo-500/30 rounded-xl p-4 space-y-4">
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">ปรับ Knob หน้าปัดไปที่ (%)</p>
-                                        <p className="text-5xl font-black text-white">{pmResult.percent}%</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 text-center border-t border-slate-800 pt-3">
-                                        <div><p className="text-[9px] text-slate-500 uppercase">Start Delay (SD)</p><p className="text-lg font-bold text-sky-400">{pmResult.sd} วิ</p></div>
-                                        <div><p className="text-[9px] text-slate-500 uppercase">Trip Delay (OD)</p><p className="text-lg font-bold text-red-400">{pmResult.od} วิ</p></div>
+                                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                                    <p className="text-sm text-slate-400 mb-1">เปอร์เซ็นต์โหลด: <span className="text-purple-400 font-bold">{pmResult.percent}%</span></p>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                                            <p className="text-[10px] text-slate-500">Start Delay (Sd)</p>
+                                            <p className="text-lg font-bold text-emerald-400">{pmResult.sd} s</p>
+                                        </div>
+                                        <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                                            <p className="text-[10px] text-slate-500">Over Delay (od)</p>
+                                            <p className="text-lg font-bold text-red-400">{pmResult.od} s</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </CollapsibleSection>
 
-                    {/* 6. ข้อมูลสเปคตู้คอนโทรล (MCC) - เพิ่มหน้าแสดงผลที่หายไป */}
+                    {/* 6. สเปคตู้ MCC & สายไฟ */}
                     <CollapsibleSection 
-                        title="6. สเปคอุปกรณ์ตู้คอนโทรล (MCC)" 
+                        title="6. สเปคตู้ MCC & สายไฟ" 
                         defaultOpen={false}
                         containerClassName="bg-rose-950/20 rounded-2xl border border-rose-500/30"
                         titleClassName="text-rose-400 font-bold text-lg uppercase"
@@ -346,36 +341,31 @@
                         <select value={selectedMccHp} onChange={(e) => setSelectedMccHp(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-3 rounded text-sm font-bold text-white mb-4">
                             {mccMasterData.map(m => <option key={m.hp} value={m.hp}>{m.hp} HP ({m.kw} kW)</option>)}
                         </select>
-                        <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 space-y-3 text-sm">
+                        <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 space-y-3">
                             <div className="grid grid-cols-2 gap-2 text-center pb-2 border-b border-slate-800">
-                                <div><p className="text-[9px] text-slate-500">พิกัดกระแส (Run)</p><p className="font-bold text-emerald-400">{currentMcc.runA} A</p></div>
-                                <div className="border-l border-slate-800"><p className="text-[9px] text-slate-500">กระแสสตาร์ท</p><p className="font-bold text-red-400">{currentMcc.startA} A</p></div>
+                                <div><p className="text-[9px] text-slate-500">พิกัดกระแส (Run)</p><p className="text-sm font-bold text-emerald-400">{currentMcc.runA} A</p></div>
+                                <div className="border-l border-slate-800"><p className="text-[9px] text-slate-500">กระแสสตาร์ท (Start)</p><p className="text-sm font-bold text-red-400">{currentMcc.startA} A</p></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-center pb-2 border-b border-slate-800">
+                                <div><p className="text-[9px] text-slate-500">Breaker</p><p className="text-xs font-bold">{currentMcc.breaker} ({currentMcc.mccb})</p></div>
+                                <div className="border-l border-slate-800"><p className="text-[9px] text-slate-500">ระบบสตาร์ท</p><p className="text-xs font-bold text-sky-400">{currentMcc.conn}</p></div>
                             </div>
                             <div className="text-center pb-2 border-b border-slate-800">
-                                <p className="text-[9px] text-slate-500">ระบบสตาร์ท</p>
-                                <p className="font-bold text-yellow-400">{currentMcc.conn}</p>
+                                <p className="text-[9px] text-slate-500">Overload Relay</p>
+                                <p className="text-xs font-bold text-yellow-400">{currentMcc.olHeater}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
-                                <div><p className="text-[9px] text-slate-500">Breaker</p><p className="font-bold text-white">{currentMcc.breaker} ({currentMcc.mccb})</p></div>
-                                <div><p className="text-[9px] text-slate-500">Overload</p><p className="font-bold text-white">{currentMcc.olHeater}</p></div>
+                            <div className="grid grid-cols-3 gap-1 text-center pb-2 border-b border-slate-800">
+                                <div><p className="text-[9px] text-slate-500">Main</p><p className="text-xs font-bold">{currentMcc.mcm}</p></div>
+                                <div className="border-x border-slate-800"><p className="text-[9px] text-slate-500">Delta</p><p className="text-xs font-bold">{currentMcc.mcd}</p></div>
+                                <div><p className="text-[9px] text-slate-500">Star</p><p className="text-xs font-bold">{currentMcc.mcs}</p></div>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-center pb-2 border-b border-slate-800">
-                                <div><p className="text-[9px] text-slate-500">Mag. Main</p><p className="font-bold text-sky-300">{currentMcc.mcm}</p></div>
-                                <div className="border-x border-slate-800"><p className="text-[9px] text-slate-500">Mag. Delta</p><p className="font-bold text-sky-300">{currentMcc.mcd}</p></div>
-                                <div><p className="text-[9px] text-slate-500">Mag. Star</p><p className="font-bold text-sky-300">{currentMcc.mcs}</p></div>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[9px] text-slate-500 uppercase">สายไฟ IEC01 (THW)</p>
-                                <p className="text-xs font-bold text-orange-300">เมน: {currentMcc.iec1}</p>
-                                <p className="text-xs font-bold text-orange-300">มอเตอร์: {currentMcc.iec2}</p>
-                            </div>
-                            <div className="space-y-1 pt-2 border-t border-slate-800">
-                                <p className="text-[9px] text-slate-500 uppercase">สายไฟ CV</p>
-                                <p className="text-xs font-bold text-emerald-300">เมน: {currentMcc.cv1}</p>
-                                <p className="text-xs font-bold text-emerald-300">มอเตอร์: {currentMcc.cv2}</p>
+                            <div className="text-center space-y-2 pt-1">
+                                <div><p className="text-[9px] text-slate-500">สายไฟ IEC (ท่อ/ราง)</p><p className="text-[11px] font-bold text-orange-300">{currentMcc.iec1}</p><p className="text-[11px] font-bold text-orange-300">{currentMcc.iec2 !== "-" && currentMcc.iec2}</p></div>
+                                <div><p className="text-[9px] text-slate-500">สายไฟ CV (ลอย/ฝัง)</p><p className="text-[11px] font-bold text-blue-300">{currentMcc.cv1}</p><p className="text-[11px] font-bold text-blue-300">{currentMcc.cv2 !== "-" && currentMcc.cv2}</p></div>
                             </div>
                         </div>
                     </CollapsibleSection>
+
                 </div>
             );
         }
